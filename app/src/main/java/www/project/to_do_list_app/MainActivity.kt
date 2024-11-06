@@ -1,6 +1,5 @@
 package www.project.to_do_list_app
 
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,18 +10,14 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import org.w3c.dom.Text
 import www.project.to_do_list_app.databinding.ActivityMainBinding
 import www.project.to_do_list_app.util.TaskDatabaseHelper
 import www.project.to_do_list_app.util.TaskList
-import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,10 +30,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
-
-//        // Access tvNoItem through contentMainLayout binding
-//        binding.contentMainLayout.tvNoItem.visibility = View.VISIBLE
-//        binding.contentMainLayout.listViewTodoLists
 
         displayTaskLists()
 
@@ -108,6 +99,7 @@ class MainActivity : AppCompatActivity() {
                 val taskNameTextView = view.findViewById<TextView>(R.id.tvTaskName)
                 val tvTaskDateDue = view.findViewById<TextView>(R.id.tvTaskDateDue)
                 val ivAddItem = view.findViewById<ImageView>(R.id.ivAddItem)
+                val ivEditItem = view.findViewById<ImageView>(R.id.ivEditItem)
 
                 // Set the task name
                 taskNameTextView.text = taskLists[position].name
@@ -116,6 +108,12 @@ class MainActivity : AppCompatActivity() {
                 ivAddItem.setOnClickListener {
 
                     goToAddItemActivity(taskLists[position].name,taskLists[position].id)
+                }
+
+                ivEditItem.setOnClickListener {
+
+                    EditExistingTaskName(taskLists[position].id,taskLists[position].name)
+
                 }
 
                 return view
@@ -145,23 +143,57 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    // Display all task lists in a ListView
-//    private fun displayTaskLists() {
-//
-//        val taskLists =  TaskDatabaseHelper(this).getAllTaskLists()
-//
-//        // Find the ListView and set the adapter
-//        val listView = findViewById<ListView>(R.id.listViewTodoLists)
-//        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, taskLists)
-//        listView.adapter = adapter
-//
-//        // Show or hide the "No Items" message based on whether there are task lists
-//        if (taskLists.isEmpty()) {
-//            binding.contentMainLayout.tvNoItem.visibility = View.VISIBLE
-//        } else {
-//            binding.contentMainLayout.tvNoItem.visibility = View.GONE
-//        }
-//    }
+    private fun EditExistingTaskName(taskId: Int, taskName: String) {
+        // Create an AlertDialog Builder
+        val builder = AlertDialog.Builder(this)
+
+        // Set the dialog title and message
+        builder.setTitle("Edit Task Name")
+
+        // Create an EditText to enter the new task name
+        val input = EditText(this)
+        input.hint = "Task List Name"
+        input.setText(taskName)  // Pre-fill with the current task name
+        builder.setView(input)
+
+        // Set up the positive button to update the task list
+        builder.setPositiveButton("Update") { dialog, _ ->
+            val newTaskName = input.text.toString().trim()
+
+            if (newTaskName.isNotEmpty()) {
+                // Update the task list name in the database
+                val dbHelper = TaskDatabaseHelper(this)
+                val isUpdated = dbHelper.updateTaskListName(taskId, newTaskName)
+
+                if (isUpdated) {
+                    Snackbar.make(binding.root, "Task list name updated to '$newTaskName'.", Snackbar.LENGTH_LONG)
+                        .setAnchorView(R.id.fab)
+                        .show()
+
+                    // Refresh the ListView after updating the task list
+                    displayTaskLists()
+                } else {
+                    Snackbar.make(binding.root, "Failed to update task list name.", Snackbar.LENGTH_SHORT)
+                        .setAnchorView(R.id.fab)
+                        .show()
+                }
+            } else {
+                Snackbar.make(binding.root, "Please enter a valid name for the task list.", Snackbar.LENGTH_SHORT)
+                    .setAnchorView(R.id.fab)
+                    .show()
+            }
+
+            dialog.dismiss()
+        }
+
+        // Set up the negative button to cancel the dialog
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.cancel()
+        }
+
+        // Show the AlertDialog
+        builder.show()
+    }
 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

@@ -1,23 +1,23 @@
 package www.project.to_do_list_app
 
-import android.content.Context
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import www.project.to_do_list_app.util.TaskItem
 
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import www.project.to_do_list_app.util.ItemAdapter
+import www.project.to_do_list_app.util.OnItemChangesListener
 import www.project.to_do_list_app.util.TaskDatabaseHelper
+import java.util.Calendar
 
-class AddToDoItemActivity : AppCompatActivity() {
+class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
 
     private lateinit var itemTotalCounter: TextView
     private lateinit var completedItemCounter: TextView
@@ -25,9 +25,11 @@ class AddToDoItemActivity : AppCompatActivity() {
     private lateinit var listViewItems: ListView
     private lateinit var taskDatabaseHelper: TaskDatabaseHelper
 
+    private lateinit var itemAdapter: ItemAdapter
+
     // List to store the task items
     private val itemList = mutableListOf<TaskItem>()
-    private lateinit var itemAdapter: ItemAdapter
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,13 +39,23 @@ class AddToDoItemActivity : AppCompatActivity() {
         val listName = intent.getStringExtra("listName")
         val listId = intent.getIntExtra("listId", -1)
 
+        val tvTaskNameHeader = findViewById<TextView>(R.id.tvTaskNameHeader)
+        val ivGoBack = findViewById<ImageView>(R.id.ivGoBack)
+
+        ivGoBack.setOnClickListener{
+
+            finish()
+        }
+
         // Use the retrieved data (listName and listId)
         if (listName != null && listId != -1) {
             // Do something with listName and listId
             title = "Add Item to $listName"
+            tvTaskNameHeader.text = title
         } else {
             // Handle the case where no data was passed or invalid data
             title = "Add Item"
+            tvTaskNameHeader.text = title
         }
 
         // Initialize views
@@ -54,8 +66,8 @@ class AddToDoItemActivity : AppCompatActivity() {
 
         taskDatabaseHelper = TaskDatabaseHelper(this)
 
-        // Set up the adapter and bind it to the ListView
-        itemAdapter = ItemAdapter(this, itemList)
+        // Initialize adapter and set the listener
+        itemAdapter = ItemAdapter(this, itemList, listId, this)  // Pass `this` as listener
         listViewItems.adapter = itemAdapter
 
         // Add item button
@@ -76,14 +88,21 @@ class AddToDoItemActivity : AppCompatActivity() {
         // Create a layout with EditText for task description and due date
         val view = layoutInflater.inflate(R.layout.dialog_add_item, null)
         val itemDescriptionEditText: EditText = view.findViewById(R.id.itemDescription)
-        val itemDueDateEditText: TextView = view.findViewById(R.id.itemDueDate)
+        val itemDueDateTextView: TextView = view.findViewById(R.id.itemDueDate)
+
+        // Set up the date picker for the due date TextView
+        itemDueDateTextView.setOnClickListener {
+            showDatePickerDialog { selectedDate ->
+                itemDueDateTextView.text = selectedDate
+            }
+        }
 
         builder.setView(view)
 
         // Add item button
         builder.setPositiveButton("Add") { dialog, _ ->
             val description = itemDescriptionEditText.text.toString().trim()
-            val dueDate = itemDueDateEditText.text.toString().trim()
+            val dueDate = itemDueDateTextView.text.toString().trim()
 
             if (description.isNotEmpty()) {
                 // Insert the task item into the database
@@ -110,6 +129,23 @@ class AddToDoItemActivity : AppCompatActivity() {
         builder.show()
     }
 
+    // Function to show DatePickerDialog and return selected date as a formatted string
+    private fun showDatePickerDialog(onDateSelected: (String) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, year, month, day ->
+                // Format the selected date
+                val selectedDate = String.format("%02d-%02d-%d", day, month + 1, year)
+                onDateSelected(selectedDate)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+        datePickerDialog.show()
+    }
+
     // Display items in the ListView
     private fun displayItemsInListView(listId: Int) {
         val items = taskDatabaseHelper.getItemsByListId(listId)
@@ -130,22 +166,11 @@ class AddToDoItemActivity : AppCompatActivity() {
        // completedItemCounter.text = "Completed: ${items.filter { it.isCompleted }.size}"
     }
 
-    //Item adapter
-    class ItemAdapter(private val context: Context, private val items: MutableList<TaskItem>) :
-        ArrayAdapter<TaskItem>(context, 0, items) {
+    override fun onItemChanged(listId: Int) {
 
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val item = getItem(position) ?: return super.getView(position, convertView, parent)
-            val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_task, parent, false)
-
-            val taskName = view.findViewById<TextView>(R.id.taskName)
-            val dueDate = view.findViewById<TextView>(R.id.dueDate)
-
-            taskName.text = item.description
-            dueDate.text = item.dueDate
-
-            return view
-        }
+        //Refresh
+        displayItemsInListView(listId)
     }
+
 
 }

@@ -113,6 +113,28 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         return items
     }
 
+    //Move task Item to another List
+    fun moveTaskItem(itemId: Int, targetListId: Int): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("listId", targetListId) // Assuming your column is named listId
+        }
+        return db.update("TaskTable", values, "id = ?", arrayOf(itemId.toString()))
+    }
+
+
+    // Update the task list's name by its ID
+    fun updateTaskListName(taskId: Int, newName: String): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_LIST_NAME, newName)
+        }
+
+        // Update the record in the database
+        val rowsAffected = db.update(TABLE_LISTS, values, "$COL_LIST_ID = ?", arrayOf(taskId.toString()))
+        return rowsAffected > 0
+    }
+
     // Updating the completion status of a task item
     fun updateTaskStatus(itemId: Int, status: Int): Boolean {
         val db = writableDatabase
@@ -144,19 +166,36 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         return rowsAffected > 0
     }
 
-    // Logging database structure
-    @SuppressLint("Range")
-    fun logDatabaseSchema() {
+    // Method to get all list names
+    fun getAllListNames(): List<String> {
+        val listNames = mutableListOf<String>()
         val db = readableDatabase
-        val cursor = db.rawQuery("PRAGMA table_info($TABLE_ITEMS)", null)
-        if (cursor.moveToFirst()) {
-            do {
-                val columnName = cursor.getString(cursor.getColumnIndex("name"))
-                Log.d("SchemaInfo", "Column: $columnName")
-            } while (cursor.moveToNext())
+        val cursor = db.query("lists", arrayOf("name"), null, null, null, null, null)
+        cursor?.use {
+            while (it.moveToNext()) {
+                val name = it.getString(it.getColumnIndexOrThrow("name"))
+                listNames.add(name)
+            }
         }
         cursor.close()
+        return listNames
     }
+
+    // Method to get all list IDs
+    fun getAllListIds(): List<Int> {
+        val listIds = mutableListOf<Int>()
+        val db = readableDatabase
+        val cursor = db.query("lists", arrayOf("id"), null, null, null, null, null)
+        cursor?.use {
+            while (it.moveToNext()) {
+                val id = it.getInt(it.getColumnIndexOrThrow("id"))
+                listIds.add(id)
+            }
+        }
+        cursor.close()
+        return listIds
+    }
+
 }
 
 

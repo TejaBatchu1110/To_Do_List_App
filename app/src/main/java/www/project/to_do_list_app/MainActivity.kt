@@ -1,17 +1,28 @@
 package www.project.to_do_list_app
 
+import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ListView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import org.w3c.dom.Text
 import www.project.to_do_list_app.databinding.ActivityMainBinding
 import www.project.to_do_list_app.util.TaskDatabaseHelper
+import www.project.to_do_list_app.util.TaskList
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
 
@@ -83,23 +94,74 @@ class MainActivity : AppCompatActivity() {
         TaskDatabaseHelper(this).addTaskList(taskListName)
     }
 
-    // Display all task lists in a ListView
+    // Display all task lists
     private fun displayTaskLists() {
+        val taskLists = TaskDatabaseHelper(this).getAllTaskLists()
 
-        val taskLists =  TaskDatabaseHelper(this).getAllTaskLists()
-
-        // Find the ListView and set the adapter
+        // Find the ListView and set the custom adapter
         val listView = findViewById<ListView>(R.id.listViewTodoLists)
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, taskLists)
+
+        // Create a custom adapter
+        val adapter = object : ArrayAdapter<TaskList>(this, R.layout.task_item, taskLists) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.task_item, parent, false)
+                val taskNameTextView = view.findViewById<TextView>(R.id.tvTaskName)
+                val tvTaskDateDue = view.findViewById<TextView>(R.id.tvTaskDateDue)
+                val ivAddItem = view.findViewById<ImageView>(R.id.ivAddItem)
+
+                // Set the task name
+                taskNameTextView.text = taskLists[position].name
+
+                // Set up the add button
+                ivAddItem.setOnClickListener {
+
+                    goToAddItemActivity(taskLists[position].name,taskLists[position].id)
+                }
+
+                return view
+            }
+        }
+
         listView.adapter = adapter
 
-        // Show or hide the "No Items" message based on whether there are task lists
         if (taskLists.isEmpty()) {
             binding.contentMainLayout.tvNoItem.visibility = View.VISIBLE
         } else {
             binding.contentMainLayout.tvNoItem.visibility = View.GONE
         }
     }
+
+    private fun goToAddItemActivity(listName: String, listId: Int) {
+
+        // Create an Intent to start AddToDoItemActivity
+        val intent = Intent(this, AddToDoItemActivity::class.java)
+
+        // Add extras (data) to the Intent
+        intent.putExtra("listName", listName)
+        intent.putExtra("listId", listId)
+
+        // Start the activity with the intent
+        startActivity(intent)
+
+    }
+
+    // Display all task lists in a ListView
+//    private fun displayTaskLists() {
+//
+//        val taskLists =  TaskDatabaseHelper(this).getAllTaskLists()
+//
+//        // Find the ListView and set the adapter
+//        val listView = findViewById<ListView>(R.id.listViewTodoLists)
+//        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, taskLists)
+//        listView.adapter = adapter
+//
+//        // Show or hide the "No Items" message based on whether there are task lists
+//        if (taskLists.isEmpty()) {
+//            binding.contentMainLayout.tvNoItem.visibility = View.VISIBLE
+//        } else {
+//            binding.contentMainLayout.tvNoItem.visibility = View.GONE
+//        }
+//    }
 
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

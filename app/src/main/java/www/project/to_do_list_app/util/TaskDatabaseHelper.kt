@@ -117,9 +117,9 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
     fun moveTaskItem(itemId: Int, targetListId: Int): Int {
         val db = writableDatabase
         val values = ContentValues().apply {
-            put("listId", targetListId) // Assuming your column is named listId
+            put(COL_LIST_REF_ID, targetListId) // Assuming your column is named listId
         }
-        return db.update("TaskTable", values, "id = ?", arrayOf(itemId.toString()))
+        return db.update(TABLE_ITEMS, values, "item_id = ?", arrayOf(itemId.toString()))
     }
 
 
@@ -154,6 +154,18 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         return rowsDeleted > 0
     }
 
+    fun editTaskItem(itemId: Int, newDescription: String, newDueDate: String): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_ITEM_DESC, newDescription)
+            put(COL_ITEM_DUE, newDueDate)
+        }
+        // Update the item in the database by its ID
+        val rowsAffected = db.update(TABLE_ITEMS, values, "$COL_ITEM_ID = ?", arrayOf(itemId.toString()))
+        return rowsAffected > 0
+    }
+
+
     // Updating a task item's description and due date
     fun updateTaskDetails(itemId: Int, newDesc: String, newDueDate: String?): Boolean {
         val db = writableDatabase
@@ -170,10 +182,10 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
     fun getAllListNames(): List<String> {
         val listNames = mutableListOf<String>()
         val db = readableDatabase
-        val cursor = db.query("lists", arrayOf("name"), null, null, null, null, null)
+        val cursor = db.query(TABLE_LISTS, arrayOf(COL_LIST_NAME), null, null, null, null, null)
         cursor?.use {
             while (it.moveToNext()) {
-                val name = it.getString(it.getColumnIndexOrThrow("name"))
+                val name = it.getString(it.getColumnIndexOrThrow(COL_LIST_NAME))
                 listNames.add(name)
             }
         }
@@ -185,10 +197,10 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
     fun getAllListIds(): List<Int> {
         val listIds = mutableListOf<Int>()
         val db = readableDatabase
-        val cursor = db.query("lists", arrayOf("id"), null, null, null, null, null)
+        val cursor = db.query(TABLE_LISTS, arrayOf(COL_LIST_ID), null, null, null, null, null)
         cursor?.use {
             while (it.moveToNext()) {
-                val id = it.getInt(it.getColumnIndexOrThrow("id"))
+                val id = it.getInt(it.getColumnIndexOrThrow(COL_LIST_ID))
                 listIds.add(id)
             }
         }

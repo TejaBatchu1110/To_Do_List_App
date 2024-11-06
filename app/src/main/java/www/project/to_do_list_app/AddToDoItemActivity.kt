@@ -115,7 +115,7 @@ class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
                     Toast.makeText(this, "Failed to add item", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                Toast.makeText(this, "Please enter a description", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enter a Item name", Toast.LENGTH_SHORT).show()
             }
 
             dialog.dismiss()

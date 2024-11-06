@@ -6,10 +6,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import www.project.to_do_list_app.util.TaskItem
 
-package www.project.to_do_list_app
-
 import android.app.AlertDialog
-import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Button
@@ -79,7 +76,7 @@ class AddToDoItemActivity : AppCompatActivity() {
         // Create a layout with EditText for task description and due date
         val view = layoutInflater.inflate(R.layout.dialog_add_item, null)
         val itemDescriptionEditText: EditText = view.findViewById(R.id.itemDescription)
-        val itemDueDateEditText: EditText = view.findViewById(R.id.itemDueDate)
+        val itemDueDateEditText: TextView = view.findViewById(R.id.itemDueDate)
 
         builder.setView(view)
 
@@ -115,7 +112,7 @@ class AddToDoItemActivity : AppCompatActivity() {
 
     // Display items in the ListView
     private fun displayItemsInListView(listId: Int) {
-        val items = taskDatabaseHelper.getItemsForList(listId)
+        val items = taskDatabaseHelper.getItemsByListId(listId)
 
         if (items.isEmpty()) {
             tvNoItem.visibility = TextView.VISIBLE
@@ -130,7 +127,7 @@ class AddToDoItemActivity : AppCompatActivity() {
 
         // Update the counters
         itemTotalCounter.text = "Total: ${items.size}"
-        completedItemCounter.text = "Completed: ${items.filter { it.isCompleted }.size}"
+       // completedItemCounter.text = "Completed: ${items.filter { it.isCompleted }.size}"
     }
 
     //Item adapter

@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "www.project.to_do_list_app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "www.project.to_do_list_app"

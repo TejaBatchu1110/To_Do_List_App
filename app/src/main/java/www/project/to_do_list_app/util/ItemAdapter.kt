@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -24,9 +25,17 @@ class ItemAdapter(
 ) : ArrayAdapter<TaskItem>(context, 0, items) {
 
 
+    override fun getCount(): Int = items.size
+    override fun getItem(position: Int): TaskItem? = items[position]
+    override fun getItemId(position: Int): Long = position.toLong()
+
+    private val dbHelper: TaskDatabaseHelper = TaskDatabaseHelper(context)
+
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val item = getItem(position) ?: return super.getView(position, convertView, parent)
         val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_task, parent, false)
+
+
 
         val taskName = view.findViewById<TextView>(R.id.taskName)
         val dueDate = view.findViewById<TextView>(R.id.dueDate)
@@ -34,8 +43,33 @@ class ItemAdapter(
         val ivDeleteTask = view.findViewById<ImageView>(R.id.ivDeleteTask)
         val ivMoveTask = view.findViewById<ImageView>(R.id.ivMoveTask)
 
+        val checkBoxComplete: CheckBox = view.findViewById(R.id.checkBoxComplete)
+
+        var taskItem = items[position]
+
+        // Set checkbox state based on the task's status
+        checkBoxComplete.isChecked = taskItem.status == 1
+
+        // Handle checkbox change
+        checkBoxComplete.setOnCheckedChangeListener { _, isChecked ->
+            // Update task status based on checkbox state
+            taskItem.status = if (isChecked) 1 else 0
+
+            // Update the database with the new task status
+            dbHelper.updateCheckboxTodoItem(taskItem)
+
+            // Notify the adapter to refresh the view after updating the status
+            notifyDataSetChanged() // Refresh the entire list or use `notifyItemChanged(position)` if using a RecyclerView
+
+            // Notify the activity or fragment that the task status has changed
+            listener.onItemChanged(taskItem.listId) // Pass the task's listId
+        }
+
+
+
         taskName.text = item.description
         dueDate.text = item.dueDate
+
 
         //Edit
         ivEditTask.setOnClickListener {
@@ -65,7 +99,7 @@ class ItemAdapter(
             { _, year, month, dayOfMonth ->
                 // Set the selected date in the format you prefer, e.g., "dd/MM/yyyy"
                 calendar.set(year, month, dayOfMonth)
-                val selectedDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
+                val selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
                 onDateSelected(selectedDate)
             },
             calendar.get(Calendar.YEAR),

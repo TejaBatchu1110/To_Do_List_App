@@ -56,17 +56,61 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         onCreate(db)
     }
 
+    //Check if task exists
+    fun isListNameExists(listName: String): Boolean {
+        val db = this.readableDatabase
+        val query = "SELECT COUNT(*) FROM task_lists WHERE name = ?"
+        val cursor = db.rawQuery(query, arrayOf(listName))
+
+        var exists = false
+        if (cursor.moveToFirst()) {
+            exists = cursor.getInt(0) > 0
+        }
+        cursor.close()
+        return exists
+    }
+
+
     // Inserting a new task list
-    fun addTaskList(name: String): Long {
+    fun addTaskList(name: String): Boolean {
+        // Check if the list name already exists
+        if (isListNameExists(name)) {
+            return false
+        }
+
+        // Proceed with adding the list if it doesn't exist
         val db = writableDatabase
         val values = ContentValues().apply {
             put(COL_LIST_NAME, name)
         }
-        return db.insert(TABLE_LISTS, null, values)
+        db.insert(TABLE_LISTS, null, values)
+        return true
+    }
+
+    //Check items duplicate
+    fun isItemDescriptionExistsInList(listId: Int, description: String): Boolean {
+        val db = this.readableDatabase
+        val query = "SELECT COUNT(*) FROM $TABLE_ITEMS WHERE $COL_LIST_REF_ID = ? AND $COL_ITEM_DESC = ?"
+        val cursor = db.rawQuery(query, arrayOf(listId.toString(), description))
+
+        var exists = false
+        if (cursor.moveToFirst()) {
+            exists = cursor.getInt(0) > 0
+        }
+        cursor.close()
+        return exists
     }
 
     // Inserting a new task item
     fun addTaskItem(description: String, dueDate: String?, listId: Int): Long {
+
+        // Check if an item with the same description already exists in the list
+        if (isItemDescriptionExistsInList(listId, description)) {
+            throw IllegalArgumentException("Item with the same description already exists in this list.")
+            // return -1L // Return -1 to indicate the item already exists
+        }
+
+        // Insert the item if it doesn't exist
         val db = writableDatabase
         val values = ContentValues().apply {
             put(COL_ITEM_DESC, description)
@@ -93,6 +137,7 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         db.close()
         return taskLists
     }
+
 
     // Fetching task items for a specific list
     @SuppressLint("Range")
@@ -207,6 +252,58 @@ class TaskDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, 
         cursor.close()
         return listIds
     }
+
+    // Get the nearest due date for items in a specific list
+//    fun getNearestDueDateForList(listId: Int): String? {
+//        val db = this.readableDatabase
+//        val query = """
+//        SELECT $COL_ITEM_DUE
+//        FROM $TABLE_ITEMS
+//        WHERE $COL_LIST_REF_ID = ?
+//        ORDER BY $COL_ITEM_DUE ASC
+//        LIMIT 1
+//    """
+//        val cursor = db.rawQuery(query, arrayOf(listId.toString()))
+//        val nearestDueDate = if (cursor.moveToFirst()) cursor.getString(0) else null
+//        cursor.close()
+//        return nearestDueDate
+//    }
+
+    @SuppressLint("Range")
+    fun getNearestDueDateForList(taskListId: Int): String? {
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT $COL_ITEM_DUE FROM $TABLE_ITEMS WHERE $COL_LIST_REF_ID = ? AND $COL_ITEM_DUE IS NOT NULL ORDER BY $COL_ITEM_DUE ASC LIMIT 1",
+            arrayOf(taskListId.toString())
+        )
+
+        return if (cursor.moveToFirst()) {
+            cursor.getString(cursor.getColumnIndex(COL_ITEM_DUE))
+        } else {
+            null
+        }
+    }
+
+
+
+    //Update checkbox
+    fun updateCheckboxTodoItem(taskItem: TaskItem) {
+        val db = this.writableDatabase  // Use writableDatabase to update
+        val contentValues = ContentValues()
+        contentValues.put(COL_ITEM_STATUS, taskItem.status)
+
+        // Update the task in the database using its ID
+        val whereClause = "$COL_ITEM_ID = ?"
+        val whereArgs = arrayOf(taskItem.id.toString())
+
+        val rowsUpdated = db.update(TABLE_ITEMS, contentValues, whereClause, whereArgs)
+
+        if (rowsUpdated == 0) {
+            Log.e("DBHelper", "Error updating task with ID: ${taskItem.id}")
+        }
+    }
+
+
 
 }
 

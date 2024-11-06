@@ -4,6 +4,6 @@ data class TaskItem(
     val id: Int,
     val description: String,
     val dueDate: String?,
-    val status: Int,
+    var status: Int,
     val listId: Int
 )

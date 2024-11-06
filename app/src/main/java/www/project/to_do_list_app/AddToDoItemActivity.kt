@@ -106,14 +106,20 @@ class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
 
             if (description.isNotEmpty()) {
                 // Insert the task item into the database
-                val result = taskDatabaseHelper.addTaskItem(description, dueDate, listId)
-                if (result != -1L) {
-                    // Refresh ListView after adding the new item
-                    displayItemsInListView(listId)
-                    Toast.makeText(this, "Item added successfully", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Failed to add item", Toast.LENGTH_SHORT).show()
+                try {
+                    val result = taskDatabaseHelper.addTaskItem(description, dueDate, listId)
+                    if (result > 0) {
+                        // Item added successfully
+                        Toast.makeText(this, "Item added successfully", Toast.LENGTH_SHORT).show()
+
+                        // Refresh
+                        displayItemsInListView(listId)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    // Handle the "already exists" error
+                    Toast.makeText(this, e.message, Toast.LENGTH_SHORT).show()
                 }
+
             } else {
                 Toast.makeText(this, "Please enter a Item name", Toast.LENGTH_SHORT).show()
             }
@@ -135,8 +141,8 @@ class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
         val datePickerDialog = DatePickerDialog(
             this,
             { _, year, month, day ->
-                // Format the selected date
-                val selectedDate = String.format("%02d-%02d-%d", day, month + 1, year)
+                // Format the selected date to yyyy-MM-dd
+                val selectedDate = String.format("%04d-%02d-%02d", year, month + 1, day)
                 onDateSelected(selectedDate)
             },
             calendar.get(Calendar.YEAR),
@@ -146,7 +152,7 @@ class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
         datePickerDialog.show()
     }
 
-    // Display items in the ListView
+
     private fun displayItemsInListView(listId: Int) {
         val items = taskDatabaseHelper.getItemsByListId(listId)
 
@@ -163,8 +169,12 @@ class AddToDoItemActivity : AppCompatActivity(), OnItemChangesListener {
 
         // Update the counters
         itemTotalCounter.text = "Total: ${items.size}"
-       // completedItemCounter.text = "Completed: ${items.filter { it.isCompleted }.size}"
+
+        // Calculate the number of completed items
+        val completedCount = items.count { it.status == 1 }
+        completedItemCounter.text = "Completed: $completedCount"
     }
+
 
     override fun onItemChanged(listId: Int) {
 
